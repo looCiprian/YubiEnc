@@ -41,6 +41,10 @@ func IsStringFile(name string) bool {
 
 	ext := filepath.Ext(name)
 
+	if ext == "." {
+		return false
+	}
+
 	return len(ext) != 0
 }
 

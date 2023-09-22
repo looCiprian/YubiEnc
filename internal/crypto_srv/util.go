@@ -74,7 +74,18 @@ func GenerateAndSaveNewKeyset(destinationKeyPath string, ym *YubikeyMng) *keyset
 		log.Fatal("[-] Cannot create new keyset" + err.Error())
 	}
 
-	// get yk serial number and timestamp to create a unique name key
+	keyByte := getKeysetByte(keysetHandle)
+
+	encryptedKey := ym.PivEncrypt(keyByte)
+	// Check if the keyset can be decrypted
+	decryptedKey := ym.PivDecrypt(encryptedKey)
+	keySetHandleDecrypted := getKeysetHandleFromByte(decryptedKey)
+
+	if reflect.DeepEqual(keysetHandle, keySetHandleDecrypted) {
+		log.Fatal("[-] Key saved and loaded are different!!!")
+	}
+
+	// Get yk serial number and timestamp to create a unique name key
 	ykSerial, err := ym.yk.Serial()
 	if err != nil {
 		log.Fatal("[-] Cannot get the yubikey serial number" + err.Error())
@@ -94,19 +105,7 @@ func GenerateAndSaveNewKeyset(destinationKeyPath string, ym *YubikeyMng) *keyset
 
 	}
 
-	keyByte := getKeysetByte(keysetHandle)
-
-	encryptedKey := ym.PivEncrypt(keyByte)
 	file_mng.CreateAndWriteNewFile(destinationKeyPath, encryptedKey)
-
-	// Check if the keyset has been correctly saved by loading and comparing it
-	keyContent := file_mng.ReadFile(destinationKeyPath)
-	decryptedKey := ym.PivDecrypt(keyContent)
-	keySetHandleDecrypted := getKeysetHandleFromByte(decryptedKey)
-
-	if reflect.DeepEqual(keysetHandle, keySetHandleDecrypted) {
-		log.Fatal("[-] Key saved and loaded are different!!!")
-	}
 
 	return keysetHandle
 }
